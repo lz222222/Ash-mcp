@@ -149,6 +149,32 @@ cloudflared tunnel --url http://127.0.0.1:18060 --http-host-header 127.0.0.1:180
 
 `feed_id` 和 `xsec_token` 是一对，都要从列表或搜索接口拿，不能自己拼。
 
+### 关键工具调用注意
+
+**publish_content（发图文）**
+
+- 必填：`title`（标题，最多 20 字）、`content`（正文）、`images`（图片数组，至少 1 张）
+- 参数名是 `images`，不是 `image_urls` / `imageUrl` / `picture`
+- `images` 里的每一项可以是：
+  - HTTP/HTTPS 图片 URL（会自动下载）
+  - 本地绝对路径，如 `D:\pics\1.jpg`
+- 可选：`tags`（话题标签数组）、`visibility`（公开/仅自己/仅好友，默认公开）、`is_original`（是否声明原创）
+- 不能发纯文字，小红书图文笔记至少要有一张图
+
+**publish_with_video（发视频）**
+
+- 必填：`title`、`content`、`video`（本地视频文件绝对路径）
+- 参数名是 `video`，单数，不是 `videos` 或 `video_url`
+
+**get_feed_detail（读笔记详情）**
+
+- 必须同时传 `feed_id` 和 `xsec_token`，两个都从 `list_feeds` / `search_feeds` 的返回里拿
+- `xsec_token` 不是自己拼的，也不是 cookie 里的字段
+
+**post_comment_to_feed（发评论）**
+
+- 需要 `feed_id` + `xsec_token` + `content`
+
 ### 常见问题
 
 | 现象 | 原因 | 处理 |
@@ -157,6 +183,8 @@ cloudflared tunnel --url http://127.0.0.1:18060 --http-host-header 127.0.0.1:180
 | `ERR_PROXY_CONNECTION_FAILED` | 系统代理指向了没开的代理软件 | 关闭系统代理，或确保代理在运行 |
 | 公网访问 403 `invalid Host header` | 隧道没改写 Host | 加 `--http-host-header` |
 | 工具报未登录 | `cookies.json` 过期 | 重新扫码或重新导出 cookies |
+| 发图文报 `unexpected additional properties` | 参数名写错了，比如用了 `image_urls` | 正确参数是 `images`，见上方「关键工具调用注意」 |
+| 发图文报 `images must have at least 1 items` | 传了空数组或没传 | 图文笔记至少一张图，传 URL 或本地路径 |
 
 内置浏览器带指纹补丁，**不要用本机 Edge/Chrome 替换**，否则指纹参数会被静默忽略。
 
