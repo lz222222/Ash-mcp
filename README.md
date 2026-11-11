@@ -182,9 +182,23 @@ cloudflared tunnel --url http://127.0.0.1:18060 --http-host-header 127.0.0.1:180
 | 启动卡在「下载内置浏览器」 | 从 `cdn.one-world.ai` 拉 190MB，国内很慢 | 手动下载后解压到缓存目录，见上表路径 |
 | `ERR_PROXY_CONNECTION_FAILED` | 系统代理指向了没开的代理软件 | 关闭系统代理，或确保代理在运行 |
 | 公网访问 403 `invalid Host header` | 隧道没改写 Host | 加 `--http-host-header` |
+| 所有工具都报 `context deadline exceeded` | 系统代理残留指向已关闭的端口（如 `127.0.0.1:7897`），Chrome 卡在连代理，页面加载超过 30 秒超时 | 清掉 WinINET 残留：`ProxyEnable=0` 且清空 `Connections\DefaultConnectionSettings` 里的代理服务器，见下方命令 |
+| 工具能跑但很慢、`list_feeds` 时好时坏 | 出口带宽不足，页面 JS 约 3MB，加载 17 秒以上；`list_feeds` 只等约 12 秒抓接口 | 换更快网络；或改用 `search_feeds`（它等得更久，更稳） |
 | 工具报未登录 | `cookies.json` 过期 | 重新扫码或重新导出 cookies |
 | 发图文报 `unexpected additional properties` | 参数名写错了，比如用了 `image_urls` | 正确参数是 `images`，见上方「关键工具调用注意」 |
 | 发图文报 `images must have at least 1 items` | 传了空数组或没传 | 图文笔记至少一张图，传 URL 或本地路径 |
+
+清残留代理（PowerShell，执行前先备份）：
+
+```powershell
+$main = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Internet Settings'
+Set-ItemProperty $main -Name ProxyEnable -Value 0 -Type DWord
+Set-ItemProperty $main -Name ProxyServer -Value '' -Type String
+# 再把 Connections\DefaultConnectionSettings 里的代理服务器段清空，
+# 然后调用 InternetSetOption 刷新（39=SETTINGS_CHANGED, 37=REFRESH）
+```
+
+判断是不是这个原因：`curl.exe -s -o NUL -w "%{http_code}" --max-time 10 https://www.xiaohongshu.com` 正常返回，但 Chrome 加载同一页面超过 30 秒。
 
 内置浏览器带指纹补丁，**不要用本机 Edge/Chrome 替换**，否则指纹参数会被静默忽略。
 
